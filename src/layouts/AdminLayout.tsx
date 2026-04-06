@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Building2, DollarSign, Headset, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Building2, DollarSign, Headset, Settings, LogOut, UserPlus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useEffect, useState } from 'react';
 import GlobalSearch from '../components/GlobalSearch';
@@ -7,6 +7,7 @@ import GlobalSearch from '../components/GlobalSearch';
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/clinics', label: 'Clinics', icon: Building2 },
+  { to: '/leads', label: 'Leads', icon: UserPlus },
   { to: '/revenue', label: 'Revenue', icon: DollarSign },
   { to: '/support', label: 'Support', icon: Headset },
   { to: '/settings', label: 'Settings', icon: Settings },
