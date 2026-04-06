@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { DollarSign, TrendingUp, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 const PLAN_PRICES: Record<string, number> = { starter: 149, growth: 299, pro: 499 };
 

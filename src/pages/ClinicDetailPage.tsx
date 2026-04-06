@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, Eye, EyeOff, Users, DollarSign, ShoppingBag, CreditCard, Edit2, Save, X } from 'lucide-react';
+import { ArrowLeft, Eye, Users, DollarSign, ShoppingBag, CreditCard, Edit2, Save, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import type { Clinic } from '../types';
