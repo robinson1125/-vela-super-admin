@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import {
   Users, Plus, DollarSign, TrendingUp, CheckCircle, Pause,
-  XCircle, X, Copy, Download, Building2, Mail, Phone, Hash,
+  XCircle, X, Copy, Download, Mail, Phone, Hash,
   ArrowUpRight, Clock, CreditCard,
 } from 'lucide-react';
 import { format } from 'date-fns';
