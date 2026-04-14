@@ -75,13 +75,27 @@ export default function ClinicDetailPage() {
     setSaving(false);
   }
 
-  function handleImpersonate() {
+  async function handleImpersonate() {
     if (!clinic) return;
     setImpersonating(true);
-    // Open the clinic's app in a new window with the clinic slug
-    // In production this would use a special admin token
-    toast.success(`Viewing ${clinic.name} as admin — check the new tab`);
-    window.open(`https://${clinic.slug}.velareward.com`, '_blank');
+
+    // Get the current admin's email
+    const { data: { user } } = await supabase.auth.getUser();
+    const adminEmail = user?.email || 'unknown@admin';
+
+    const result = await callFunction('impersonate-clinic', {
+      clinic_id: clinic.id,
+      admin_email: adminEmail,
+    });
+
+    if (result.error) {
+      toast.error(result.error);
+      setImpersonating(false);
+      return;
+    }
+
+    toast.success(`Opening ${clinic.name} — check the new tab`);
+    window.open(result.url, '_blank');
     setTimeout(() => setImpersonating(false), 1000);
   }
 
