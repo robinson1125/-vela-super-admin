@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Eye, Users, DollarSign, ShoppingBag, CreditCard, Edit2, Save, X } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { ArrowLeft, Eye, Users, DollarSign, ShoppingBag, CreditCard, Edit2, Save, X, Copy } from 'lucide-react';
+import { supabase, callFunction } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import type { Clinic } from '../types';
 
@@ -18,6 +18,11 @@ export default function ClinicDetailPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'patients' | 'orders'>('overview');
   const [patients, setPatients] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [showCloneModal, setShowCloneModal] = useState(false);
+  const [allClinics, setAllClinics] = useState<any[]>([]);
+  const [cloneTargetId, setCloneTargetId] = useState('');
+  const [cloning, setCloning] = useState(false);
+  const [cloneResult, setCloneResult] = useState<any>(null);
 
   useEffect(() => { if (clinicId) loadClinic(); }, [clinicId]);
 
@@ -121,6 +126,16 @@ export default function ClinicDetailPage() {
           <button onClick={handleImpersonate} disabled={impersonating}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-amber-100 text-amber-700 rounded-lg font-medium hover:bg-amber-200 disabled:opacity-50">
             <Eye className="w-3.5 h-3.5" /> {impersonating ? 'Opening...' : 'Impersonate'}
+          </button>
+          <button onClick={async () => {
+            const { data } = await supabase.from('clinics').select('id, name').neq('id', clinicId).order('name');
+            setAllClinics(data || []);
+            setCloneTargetId('');
+            setCloneResult(null);
+            setShowCloneModal(true);
+          }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-indigo-100 text-indigo-700 rounded-lg font-medium hover:bg-indigo-200">
+            <Copy className="w-3.5 h-3.5" /> Clone Setup
           </button>
         </div>
       </div>
@@ -281,6 +296,110 @@ export default function ClinicDetailPage() {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Clone modal */}
+      {showCloneModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
+            <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Clone Clinic Setup</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Copy all configuration from <strong>{clinic.name}</strong> to another clinic</p>
+              </div>
+              <button onClick={() => setShowCloneModal(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+            </div>
+
+            {!cloneResult ? (
+              <>
+                <div className="p-5 space-y-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-xs text-blue-900 font-medium mb-1">What gets cloned:</p>
+                    <p className="text-[11px] text-blue-700 leading-relaxed">
+                      Services, products, membership tiers, offers, form templates, automation workflows (inactive),
+                      smart phrases, marketing forms, clinic settings, branding colors.
+                    </p>
+                    <p className="text-[11px] text-blue-600 mt-1.5 font-medium">
+                      NOT cloned: patients, staff, appointments, orders, inventory, conversations.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">Clone to which clinic?</label>
+                    <select value={cloneTargetId} onChange={e => setCloneTargetId(e.target.value)}
+                      className="w-full rounded-lg border-gray-300 text-sm py-2.5">
+                      <option value="">Select target clinic...</option>
+                      {allClinics.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {cloneTargetId && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                      <span className="text-amber-600 text-lg">⚠️</span>
+                      <p className="text-xs text-amber-800">
+                        This will add configuration to <strong>{allClinics.find(c => c.id === cloneTargetId)?.name}</strong>.
+                        Existing data on the target clinic will NOT be deleted — new items will be added alongside anything already there.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="px-5 py-3 border-t border-gray-200 flex gap-2">
+                  <button onClick={() => setShowCloneModal(false)}
+                    className="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50">
+                    Cancel
+                  </button>
+                  <button
+                    disabled={!cloneTargetId || cloning}
+                    onClick={async () => {
+                      if (!confirm(`Clone ${clinic.name}'s setup to ${allClinics.find(c => c.id === cloneTargetId)?.name}? This cannot be undone.`)) return;
+                      setCloning(true);
+                      const result = await callFunction('clone-clinic', {
+                        source_clinic_id: clinicId,
+                        target_clinic_id: cloneTargetId,
+                      });
+                      setCloning(false);
+                      if (result.error) { toast.error(result.error); return; }
+                      setCloneResult(result);
+                      toast.success('Clone complete!');
+                    }}
+                    className="flex-1 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  >
+                    <Copy className="w-3.5 h-3.5" /> {cloning ? 'Cloning...' : 'Clone Now'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-xl">✓</div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-900">Clone complete</p>
+                      <p className="text-xs text-gray-500">{cloneResult.source?.name} → {cloneResult.target?.name}</p>
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3 space-y-1.5">
+                    {Object.entries(cloneResult.cloned || {}).map(([key, count]: [string, any]) => (
+                      <div key={key} className="flex justify-between text-xs">
+                        <span className="text-gray-600 capitalize">{key.replace(/_/g, ' ')}</span>
+                        <span className="font-bold text-gray-900">{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="px-5 py-3 border-t border-gray-200">
+                  <button onClick={() => setShowCloneModal(false)}
+                    className="w-full py-2.5 rounded-lg bg-gray-900 text-white text-sm font-bold hover:bg-gray-800">
+                    Done
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
